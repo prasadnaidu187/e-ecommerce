@@ -39,11 +39,13 @@ public class CartController {
         String email =
                 authentication.getName();
 
+
         CartResponse response =
                 cartService.addToCart(
                         email,
                         request
                 );
+
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -61,10 +63,37 @@ public class CartController {
         String email =
                 authentication.getName();
 
+
         List<CartResponse> cart =
                 cartService.getCart(email);
 
+
         return ResponseEntity.ok(cart);
+    }
+
+
+    // ================= UPDATE QUANTITY =================
+
+    @PutMapping("/{cartId}")
+    public ResponseEntity<CartResponse> updateQuantity(
+            @PathVariable Long cartId,
+            @RequestBody CartRequest request,
+            Authentication authentication
+    ) {
+
+        String email =
+                authentication.getName();
+
+
+        CartResponse response =
+                cartService.updateQuantity(
+                        email,
+                        cartId,
+                        request.getQuantity()
+                );
+
+
+        return ResponseEntity.ok(response);
     }
 
 
@@ -79,10 +108,12 @@ public class CartController {
         String email =
                 authentication.getName();
 
+
         cartService.removeFromCart(
                 email,
                 cartId
         );
+
 
         return ResponseEntity.ok(
                 "Item removed from cart"
@@ -100,10 +131,13 @@ public class CartController {
         String email =
                 authentication.getName();
 
+
         cartService.clearCart(email);
+
 
         return ResponseEntity.ok(
                 "Cart cleared successfully"
         );
     }
 }
+

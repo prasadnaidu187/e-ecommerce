@@ -7,6 +7,9 @@ import Profile from "./pages/Profile";
 import Products from "./pages/Products";
 import ProductDetails from "./pages/ProductDetails";
 import Cart from "./pages/Cart";
+import Address from "./pages/Address";
+import Checkout from "./pages/Checkout";
+import Orders from "./pages/Orders";
 
 import Navbar from "./components/Navbar";
 
@@ -39,8 +42,6 @@ function App() {
         const token =
             localStorage.getItem("token");
 
-
-        // User is not logged in
 
         if (!token) {
 
@@ -155,6 +156,11 @@ function App() {
 
                         onCart={() =>
                             setPage("cart")
+                        }
+
+
+                        onOrders={() =>
+                            setPage("orders")
                         }
 
 
@@ -288,6 +294,8 @@ function App() {
 
             {/* ================= CART ================= */}
 
+            
+
             {page === "cart" && (
 
                 <Cart
@@ -297,6 +305,124 @@ function App() {
                     }
 
                 />
+
+            )}
+
+
+            {/* ================= ADDRESS ================= */}
+
+            {page === "address" && (
+
+                <Address
+
+                    onContinue={() =>
+                        setPage("checkout")
+                    }
+
+                />
+
+            )}
+
+
+            {/* ================= CHECKOUT ================= */}
+
+            {page === "checkout" && (
+
+                <Checkout
+
+                    onBack={() =>
+                        setPage("address")
+                    }
+
+
+                    onOrderSuccess={(order) => {
+
+                        console.log(
+                            "Order created:",
+                            order
+                        );
+
+                        setPage(
+                            "order-success"
+                        );
+
+                    }}
+
+                />
+
+            )}
+
+
+            {/* ================= ORDERS ================= */}
+
+            {page === "orders" && (
+
+                <Orders
+
+                    onContinueShopping={() =>
+                        setPage("products")
+                    }
+
+                />
+
+            )}
+
+
+            {/* ================= ORDER SUCCESS ================= */}
+
+            {page === "order-success" && (
+
+                <div className="min-h-screen bg-gray-100 px-4 py-12">
+
+                    <div className="mx-auto max-w-xl rounded-2xl bg-white p-8 text-center shadow">
+
+                        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-3xl">
+
+                            ✓
+
+                        </div>
+
+
+                        <h1 className="text-3xl font-bold text-gray-900">
+
+                            Order Placed Successfully!
+
+                        </h1>
+
+
+                        <p className="mt-3 text-gray-600">
+
+                            Thank you for your purchase.
+
+                        </p>
+
+
+                        <button
+                            onClick={() =>
+                                setPage("orders")
+                            }
+                            className="mt-8 mr-3 rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
+                        >
+
+                            View My Orders
+
+                        </button>
+
+
+                        <button
+                            onClick={() =>
+                                setPage("products")
+                            }
+                            className="mt-8 rounded-lg border border-gray-300 px-6 py-3 font-semibold text-gray-700 hover:bg-gray-100"
+                        >
+
+                            Continue Shopping
+
+                        </button>
+
+                    </div>
+
+                </div>
 
             )}
 

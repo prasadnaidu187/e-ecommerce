@@ -127,6 +127,79 @@ public class CartService {
     }
 
 
+    // ================= UPDATE QUANTITY =================
+
+    public CartResponse updateQuantity(
+            String email,
+            Long cartId,
+            Integer quantity
+    ) {
+
+        User user = userRepository
+                .findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found")
+                );
+
+
+        Cart cart = cartRepository
+                .findById(cartId)
+                .orElseThrow(() ->
+                        new RuntimeException("Cart item not found")
+                );
+
+
+        // Make sure this cart item belongs
+        // to the logged-in user
+
+        if (!cart.getUser().getId().equals(user.getId())) {
+
+            throw new RuntimeException(
+                    "You cannot update another user's cart item"
+            );
+
+        }
+
+
+        // Quantity cannot be less than 1
+
+        if (quantity == null || quantity < 1) {
+
+            throw new RuntimeException(
+                    "Quantity must be at least 1"
+            );
+
+        }
+
+
+        Product product =
+                cart.getProduct();
+
+
+        // Check available stock
+
+        if (quantity > product.getQuantity()) {
+
+            throw new RuntimeException(
+                    "Requested quantity exceeds available stock"
+            );
+
+        }
+
+
+        // Update quantity
+
+        cart.setQuantity(quantity);
+
+
+        Cart savedCart =
+                cartRepository.save(cart);
+
+
+        return convertToResponse(savedCart);
+    }
+
+
     // ================= REMOVE ITEM =================
 
     public void removeFromCart(
@@ -213,3 +286,4 @@ public class CartService {
         );
     }
 }
+

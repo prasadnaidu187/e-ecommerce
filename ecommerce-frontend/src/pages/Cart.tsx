@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { getCart } from "../services/api";
+
+import {
+    getCart,
+    removeFromCart,
+    updateCartQuantity
+} from "../services/api";
+
 
 type CartItem = {
     cartId: number;
@@ -10,13 +16,15 @@ type CartItem = {
     totalPrice: number;
 };
 
+
 type CartProps = {
     onContinueShopping: () => void;
 };
 
+
 function Cart({
-                  onContinueShopping
-              }: CartProps) {
+    onContinueShopping
+}: CartProps) {
 
     const [cart, setCart] =
         useState<CartItem[]>([]);
@@ -75,6 +83,96 @@ function Cart({
         loadCart();
 
     }, []);
+
+
+    // ================= UPDATE QUANTITY =================
+
+    const handleQuantityChange = async (
+        cartId: number,
+        newQuantity: number
+    ) => {
+
+        // Don't allow quantity below 1
+        if (newQuantity < 1) {
+            return;
+        }
+
+        try {
+
+            const updatedItem =
+                await updateCartQuantity(
+                    cartId,
+                    newQuantity
+                );
+
+            console.log(
+                "Updated cart item:",
+                updatedItem
+            );
+
+            setCart((currentCart) =>
+                currentCart.map((item) =>
+                    item.cartId === cartId
+                        ? {
+                            ...item,
+                            quantity:
+                                updatedItem.quantity,
+                            totalPrice:
+                                updatedItem.totalPrice
+                        }
+                        : item
+                )
+            );
+
+        } catch (error) {
+
+            console.error(
+                "Failed to update quantity:",
+                error
+            );
+
+            alert(
+                "Failed to update cart quantity"
+            );
+
+        }
+
+    };
+
+
+    // ================= REMOVE ITEM =================
+
+    const handleRemove = async (
+        cartId: number
+    ) => {
+
+        try {
+
+            await removeFromCart(
+                cartId
+            );
+
+            setCart((currentCart) =>
+                currentCart.filter(
+                    (item) =>
+                        item.cartId !== cartId
+                )
+            );
+
+        } catch (error) {
+
+            console.error(
+                "Failed to remove item:",
+                error
+            );
+
+            alert(
+                "Failed to remove item from cart"
+            );
+
+        }
+
+    };
 
 
     // ================= TOTAL =================
@@ -309,7 +407,7 @@ function Cart({
                                         </p>
 
 
-                                        {/* QUANTITY */}
+                                        {/* QUANTITY + REMOVE */}
 
                                         <div className="flex items-center justify-between mt-5">
 
@@ -319,11 +417,61 @@ function Cart({
                                                     Quantity:
                                                 </span>
 
-                                                <div className="px-4 py-2 bg-slate-100 rounded-lg font-bold">
+
+                                                {/* MINUS */}
+
+                                                <button
+                                                    onClick={() =>
+                                                        handleQuantityChange(
+                                                            item.cartId,
+                                                            item.quantity - 1
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        item.quantity <= 1
+                                                    }
+                                                    className="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 font-bold text-lg hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                                >
+                                                    −
+                                                </button>
+
+
+                                                {/* QUANTITY */}
+
+                                                <div className="w-12 h-9 flex items-center justify-center bg-slate-100 rounded-lg font-bold">
                                                     {item.quantity}
                                                 </div>
 
+
+                                                {/* PLUS */}
+
+                                                <button
+                                                    onClick={() =>
+                                                        handleQuantityChange(
+                                                            item.cartId,
+                                                            item.quantity + 1
+                                                        )
+                                                    }
+                                                    className="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 font-bold text-lg hover:bg-slate-200 transition"
+                                                >
+                                                    +
+                                                </button>
+
                                             </div>
+
+
+                                            {/* REMOVE */}
+
+                                            <button
+                                                onClick={() =>
+                                                    handleRemove(
+                                                        item.cartId
+                                                    )
+                                                }
+                                                className="text-sm font-semibold text-red-500 hover:text-red-700 transition"
+                                            >
+                                                🗑️ Remove
+                                            </button>
 
                                         </div>
 
@@ -434,4 +582,6 @@ function Cart({
     );
 }
 
+
 export default Cart;
+

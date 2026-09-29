@@ -337,3 +337,225 @@ export async function getCart() {
 
     return JSON.parse(text);
 }
+
+export async function removeFromCart(
+    cartId: number
+) {
+    const token =
+        localStorage.getItem("token");
+
+    const response = await fetch(
+        `${API_URL}/cart/${cartId}`,
+        {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
+        }
+    );
+
+    const text =
+        await response.text();
+
+    console.log(
+        "Remove Cart Status:",
+        response.status
+    );
+
+    console.log(
+        "Remove Cart Response:",
+        text
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to remove cart item: ${response.status} ${text}`
+        );
+    }
+
+    return text;
+}
+
+
+export async function updateCartQuantity(
+    cartId: number,
+    quantity: number
+) {
+    const token =
+        localStorage.getItem("token");
+
+    const response = await fetch(
+        `${API_URL}/cart/${cartId}`,
+        {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                quantity: quantity,
+            }),
+        }
+    );
+
+    const text =
+        await response.text();
+
+    console.log(
+        "Update Cart Status:",
+        response.status
+    );
+
+    console.log(
+        "Update Cart Response:",
+        text
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to update cart quantity: ${response.status} ${text}`
+        );
+    }
+
+    return JSON.parse(text);
+}
+
+// ===============================
+// ADDRESS APIs
+// ===============================
+
+export const createAddress = async (addressData: {
+    fullName: string;
+    phone: string;
+    addressLine: string;
+    city: string;
+    state: string;
+    pincode: string;
+}) => {
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(`${API_URL}/addresses`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(addressData),
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Failed to create address");
+    }
+
+    return response.json();
+};
+
+export const getAddresses = async () => {
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(`${API_URL}/addresses`, {
+        method: "GET",
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Failed to get addresses");
+    }
+
+    return response.json();
+};
+
+export const updateAddress = async (
+    id: number,
+    addressData: {
+        fullName: string;
+        phone: string;
+        addressLine: string;
+        city: string;
+        state: string;
+        pincode: string;
+    }
+) => {
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(`${API_URL}/addresses/${id}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(addressData),
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Failed to update address");
+    }
+
+    return response.json();
+};
+
+export const deleteAddress = async (id: number) => {
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(`${API_URL}/addresses/${id}`, {
+        method: "DELETE",
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Failed to delete address");
+    }
+
+    return response.text();
+};
+
+export const createOrder = async () => {
+
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(
+        `${API_URL}/orders`,
+        {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to create order");
+    }
+
+    return response.json();
+};
+
+export const getOrders = async () => {
+
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(
+        `${API_URL}/orders`,
+        {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch orders");
+    }
+
+    return response.json();
+};
+

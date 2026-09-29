@@ -4,6 +4,7 @@ type NavbarProps = {
     onProfile: () => void;
     onLogout: () => void;
     onCart: () => void;
+    onOrders: () => void;
     cartCount: number;
 };
 
@@ -13,6 +14,7 @@ function Navbar({
                     onProfile,
                     onLogout,
                     onCart,
+                    onOrders,
                     cartCount
                 }: NavbarProps) {
 
@@ -125,9 +127,10 @@ function Navbar({
                         </button>
 
 
-                        {/* ORDERS */}
+                        {/* ================= ORDERS ================= */}
 
                         <button
+                            onClick={onOrders}
                             className="hidden lg:block px-3 py-2 rounded-md hover:border hover:border-white transition text-left shrink-0"
                         >
 
