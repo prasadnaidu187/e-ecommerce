@@ -292,21 +292,25 @@ function App() {
                 )}
 
 
-            {/* ================= CART ================= */}
-
             
+{/* ================= CART ================= */}
 
-            {page === "cart" && (
+{page === "cart" && (
 
-                <Cart
+    <Cart
 
-                    onContinueShopping={() =>
-                        setPage("products")
-                    }
+        onContinueShopping={() =>
+            setPage("products")
+        }
 
-                />
+        onProceedToCheckout={() =>
+            setPage("address")
+        }
 
-            )}
+    />
+
+)}
+
 
 
             {/* ================= ADDRESS ================= */}

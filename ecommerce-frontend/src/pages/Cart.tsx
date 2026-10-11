@@ -19,11 +19,13 @@ type CartItem = {
 
 type CartProps = {
     onContinueShopping: () => void;
+    onProceedToCheckout: () => void;
 };
 
 
 function Cart({
-    onContinueShopping
+    onContinueShopping,
+    onProceedToCheckout
 }: CartProps) {
 
     const [cart, setCart] =
@@ -78,6 +80,7 @@ function Cart({
                 setLoading(false);
 
             }
+
         };
 
         loadCart();
@@ -226,6 +229,7 @@ function Cart({
             </div>
 
         );
+
     }
 
 
@@ -263,6 +267,7 @@ function Cart({
             </div>
 
         );
+
     }
 
 
@@ -305,6 +310,7 @@ function Cart({
             </div>
 
         );
+
     }
 
 
@@ -555,7 +561,10 @@ function Cart({
                             </div>
 
 
+                            {/* PROCEED TO CHECKOUT */}
+
                             <button
+                                onClick={onProceedToCheckout}
                                 className="w-full mt-6 h-14 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200"
                             >
                                 Proceed to Checkout
@@ -580,8 +589,8 @@ function Cart({
         </div>
 
     );
+
 }
 
 
 export default Cart;
-
