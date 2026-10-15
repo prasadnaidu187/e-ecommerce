@@ -1,3 +1,4 @@
+
 package com.ecommerce.order.entity;
 
 import com.ecommerce.user.entity.User;
@@ -19,6 +20,15 @@ public class Order {
     private String status;
 
     private LocalDateTime orderDate;
+
+    @Column(name = "razorpay_order_id", unique = true)
+    private String razorpayOrderId;
+
+    @Column(name = "razorpay_payment_id", unique = true)
+    private String razorpayPaymentId;
+
+    @Column(name = "payment_status")
+    private String paymentStatus;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
@@ -57,6 +67,30 @@ public class Order {
 
     public void setOrderDate(LocalDateTime orderDate) {
         this.orderDate = orderDate;
+    }
+
+    public String getRazorpayOrderId() {
+        return razorpayOrderId;
+    }
+
+    public void setRazorpayOrderId(String razorpayOrderId) {
+        this.razorpayOrderId = razorpayOrderId;
+    }
+
+    public String getRazorpayPaymentId() {
+        return razorpayPaymentId;
+    }
+
+    public void setRazorpayPaymentId(String razorpayPaymentId) {
+        this.razorpayPaymentId = razorpayPaymentId;
+    }
+
+    public String getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
     }
 
     public User getUser() {

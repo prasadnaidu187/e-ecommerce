@@ -1,3 +1,4 @@
+
 package com.ecommerce.order.service;
 
 import com.ecommerce.cart.entity.Cart;
@@ -11,12 +12,20 @@ import com.ecommerce.order.repository.OrderRepository;
 import com.ecommerce.user.entity.User;
 import com.ecommerce.user.repository.UserRepository;
 
+import com.razorpay.RazorpayClient;
+import com.razorpay.Utils;
+import org.json.JSONObject;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class OrderService {
@@ -25,6 +34,12 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final CartRepository cartRepository;
     private final UserRepository userRepository;
+
+    @Value("${razorpay.key.id}")
+    private String razorpayKeyId;
+
+    @Value("${razorpay.key.secret}")
+    private String razorpayKeySecret;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -39,82 +54,181 @@ public class OrderService {
     }
 
     private User getLoggedInUser(Authentication authentication) {
-
         return userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() ->
                         new RuntimeException("User not found"));
     }
 
-    public OrderResponse createOrder(
+    // Create a pending order and a Razorpay payment order.
+    @Transactional
+    public Map<String, Object> createPaymentOrder(
             Authentication authentication
     ) {
+        try {
+            User user = getLoggedInUser(authentication);
 
-        User user = getLoggedInUser(authentication);
+            List<Cart> cartItems = cartRepository.findByUser(user);
 
-        List<Cart> cartItems =
-                cartRepository.findByUser(user);
+            if (cartItems.isEmpty()) {
+                throw new RuntimeException("Cart is empty");
+            }
 
-        if (cartItems.isEmpty()) {
-            throw new RuntimeException("Cart is empty");
-        }
+            BigDecimal totalAmount = BigDecimal.ZERO;
 
-        BigDecimal totalAmount = BigDecimal.ZERO;
+            for (Cart cart : cartItems) {
+                BigDecimal itemTotal =
+                        cart.getProduct().getPrice()
+                                .multiply(BigDecimal.valueOf(
+                                        cart.getQuantity()
+                                ));
 
-        for (Cart cart : cartItems) {
+                totalAmount = totalAmount.add(itemTotal);
+            }
 
-            BigDecimal itemTotal =
-                    cart.getProduct()
-                            .getPrice()
-                            .multiply(
-                                    BigDecimal.valueOf(
-                                            cart.getQuantity()
-                                    )
-                            );
+            if (totalAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new RuntimeException("Invalid order amount");
+            }
 
-            totalAmount =
-                    totalAmount.add(itemTotal);
-        }
+            // Save a pending local order.
+            Order order = new Order();
+            order.setUser(user);
+            order.setTotalAmount(totalAmount);
+            order.setStatus("PENDING");
+            order.setPaymentStatus("PENDING");
+            order.setOrderDate(LocalDateTime.now());
 
-        Order order = new Order();
+            Order savedOrder = orderRepository.save(order);
 
-        order.setUser(user);
-        order.setTotalAmount(totalAmount);
-        order.setStatus("PLACED");
-        order.setOrderDate(LocalDateTime.now());
+            // Save a snapshot of the cart items.
+            for (Cart cart : cartItems) {
+                OrderItem item = new OrderItem();
+                item.setOrder(savedOrder);
+                item.setProduct(cart.getProduct());
+                item.setQuantity(cart.getQuantity());
+                item.setPrice(cart.getProduct().getPrice());
 
-        Order savedOrder =
-                orderRepository.save(order);
+                orderItemRepository.save(item);
+            }
 
-        for (Cart cart : cartItems) {
+            // Razorpay expects the amount in paise.
+            long amountInPaise = totalAmount
+                    .multiply(BigDecimal.valueOf(100))
+                    .longValueExact();
 
-            OrderItem orderItem =
-                    new OrderItem();
-
-            orderItem.setOrder(savedOrder);
-            orderItem.setProduct(
-                    cart.getProduct()
+            RazorpayClient client = new RazorpayClient(
+                    razorpayKeyId,
+                    razorpayKeySecret
             );
 
-            orderItem.setQuantity(
-                    cart.getQuantity()
-            );
+            JSONObject request = new JSONObject();
+            request.put("amount", amountInPaise);
+            request.put("currency", "INR");
+            request.put("receipt", "order-" + savedOrder.getId());
 
-            orderItem.setPrice(
-                    cart.getProduct().getPrice()
-            );
+            com.razorpay.Order razorpayOrder =
+                    client.orders.create(request);
 
-            orderItemRepository.save(orderItem);
+            String razorpayOrderId =
+                    razorpayOrder.get("id").toString();
+
+            savedOrder.setRazorpayOrderId(razorpayOrderId);
+            orderRepository.save(savedOrder);
+
+            // Send the information needed by Razorpay Checkout.
+            Map<String, Object> response = new HashMap<>();
+            response.put("localOrderId", savedOrder.getId());
+            response.put("razorpayOrderId", razorpayOrderId);
+            response.put("amount", amountInPaise);
+            response.put("currency", "INR");
+            response.put("keyId", razorpayKeyId);
+            response.put("name", "E-Commerce Store");
+            response.put("description", "Order #" + savedOrder.getId());
+            response.put("email", user.getEmail());
+
+            return response;
+
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Could not create payment order: " + e.getMessage(),
+                    e
+            );
         }
+    }
 
-        cartRepository.deleteAll(cartItems);
+    // Verify Razorpay's payment signature before confirming the order.
+    @Transactional
+    public OrderResponse verifyPayment(
+            Long localOrderId,
+            String razorpayOrderId,
+            String razorpayPaymentId,
+            String razorpaySignature,
+            Authentication authentication
+    ) {
+        try {
+            User user = getLoggedInUser(authentication);
 
-        return mapToResponse(savedOrder);
+            Order order = orderRepository.findById(localOrderId)
+                    .orElseThrow(() ->
+                            new RuntimeException("Order not found"));
+
+            if (!order.getUser().getId().equals(user.getId())) {
+                throw new RuntimeException(
+                        "You are not authorized to access this order"
+                );
+            }
+
+            if (order.getRazorpayOrderId() == null
+                    || !order.getRazorpayOrderId()
+                            .equals(razorpayOrderId)) {
+                throw new RuntimeException(
+                        "Razorpay order ID does not match"
+                );
+            }
+
+            // Make successful verification safe to retry.
+            if ("PAID".equals(order.getPaymentStatus())) {
+                return mapToResponse(order);
+            }
+
+            JSONObject paymentData = new JSONObject();
+            paymentData.put("razorpay_order_id", razorpayOrderId);
+            paymentData.put("razorpay_payment_id", razorpayPaymentId);
+            paymentData.put("razorpay_signature", razorpaySignature);
+
+            boolean valid = Utils.verifyPaymentSignature(
+                    paymentData,
+                    razorpayKeySecret
+            );
+
+            if (!valid) {
+                throw new RuntimeException(
+                        "Payment signature verification failed"
+                );
+            }
+
+            order.setRazorpayPaymentId(razorpayPaymentId);
+            order.setPaymentStatus("PAID");
+            order.setStatus("PLACED");
+
+            Order savedOrder = orderRepository.save(order);
+
+            // Clear the cart only after successful verification.
+            List<Cart> cartItems = cartRepository.findByUser(user);
+            cartRepository.deleteAll(cartItems);
+
+            return mapToResponse(savedOrder);
+
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Payment verification failed: " + e.getMessage(),
+                    e
+            );
+        }
     }
 
     public List<OrderResponse> getMyOrders(
             Authentication authentication
     ) {
-
         User user = getLoggedInUser(authentication);
 
         return orderRepository.findByUser(user)
@@ -127,20 +241,13 @@ public class OrderService {
             Long orderId,
             Authentication authentication
     ) {
-
         User user = getLoggedInUser(authentication);
 
-        Order order =
-                orderRepository.findById(orderId)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Order not found"
-                                ));
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() ->
+                        new RuntimeException("Order not found"));
 
-        if (!order.getUser()
-                .getId()
-                .equals(user.getId())) {
-
+        if (!order.getUser().getId().equals(user.getId())) {
             throw new RuntimeException(
                     "You are not authorized to access this order"
             );
@@ -149,23 +256,17 @@ public class OrderService {
         return mapToResponse(order);
     }
 
-    private OrderResponse mapToResponse(
-            Order order
-    ) {
-
+    private OrderResponse mapToResponse(Order order) {
         List<OrderItemResponse> items =
-                orderItemRepository
-                        .findByOrderId(order.getId())
+                orderItemRepository.findByOrderId(order.getId())
                         .stream()
-                        .map(item ->
-                                new OrderItemResponse(
-                                        item.getId(),
-                                        item.getProduct().getId(),
-                                        item.getProduct().getName(),
-                                        item.getQuantity(),
-                                        item.getPrice()
-                                )
-                        )
+                        .map(item -> new OrderItemResponse(
+                                item.getId(),
+                                item.getProduct().getId(),
+                                item.getProduct().getName(),
+                                item.getQuantity(),
+                                item.getPrice()
+                        ))
                         .toList();
 
         return new OrderResponse(

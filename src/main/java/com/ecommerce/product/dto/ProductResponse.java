@@ -11,6 +11,7 @@ public class ProductResponse {
     private Integer quantity;
     private Long categoryId;
     private String categoryName;
+    private String imageUrl;
 
     public ProductResponse() {
     }
@@ -22,7 +23,8 @@ public class ProductResponse {
             BigDecimal price,
             Integer quantity,
             Long categoryId,
-            String categoryName) {
+            String categoryName,
+            String imageUrl) {
 
         this.id = id;
         this.name = name;
@@ -31,6 +33,7 @@ public class ProductResponse {
         this.quantity = quantity;
         this.categoryId = categoryId;
         this.categoryName = categoryName;
+        this.imageUrl = imageUrl;
     }
 
     public Long getId() {
@@ -59,5 +62,9 @@ public class ProductResponse {
 
     public String getCategoryName() {
         return categoryName;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
     }
 }

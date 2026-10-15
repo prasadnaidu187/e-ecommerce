@@ -1,3 +1,4 @@
+
 package com.ecommerce.order.controller;
 
 import com.ecommerce.order.dto.OrderResponse;
@@ -9,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -20,43 +22,61 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    // Checkout - Create Order from Cart
+    // Create a pending order and Razorpay payment order.
     @PostMapping
-    public ResponseEntity<OrderResponse> createOrder(
+    public ResponseEntity<Map<String, Object>> createPaymentOrder(
             Authentication authentication
     ) {
-
-        OrderResponse response =
-                orderService.createOrder(authentication);
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(response);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(orderService.createPaymentOrder(authentication));
     }
 
-    // Get all orders of logged-in user
+    // Verify the payment and confirm the local order.
+    @PostMapping("/verify-payment")
+    public ResponseEntity<OrderResponse> verifyPayment(
+            @RequestBody Map<String, Object> request,
+            Authentication authentication
+    ) {
+        Long localOrderId = Long.valueOf(
+                request.get("localOrderId").toString()
+        );
+
+        String razorpayOrderId =
+                request.get("razorpay_order_id").toString();
+
+        String razorpayPaymentId =
+                request.get("razorpay_payment_id").toString();
+
+        String razorpaySignature =
+                request.get("razorpay_signature").toString();
+
+        OrderResponse response = orderService.verifyPayment(
+                localOrderId,
+                razorpayOrderId,
+                razorpayPaymentId,
+                razorpaySignature,
+                authentication
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping
     public ResponseEntity<List<OrderResponse>> getMyOrders(
             Authentication authentication
     ) {
-
         return ResponseEntity.ok(
                 orderService.getMyOrders(authentication)
         );
     }
 
-    // Get one order
     @GetMapping("/{id}")
     public ResponseEntity<OrderResponse> getOrder(
             @PathVariable Long id,
             Authentication authentication
     ) {
-
         return ResponseEntity.ok(
-                orderService.getOrder(
-                        id,
-                        authentication
-                )
+                orderService.getOrder(id, authentication)
         );
     }
 }

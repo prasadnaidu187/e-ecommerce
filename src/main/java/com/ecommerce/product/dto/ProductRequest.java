@@ -25,6 +25,8 @@ public class ProductRequest {
     @NotNull(message = "Category is required")
     private Long categoryId;
 
+    private String imageUrl;
+
     public ProductRequest() {
     }
 
@@ -66,5 +68,13 @@ public class ProductRequest {
 
     public void setCategoryId(Long categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }
