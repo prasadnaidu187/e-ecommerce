@@ -328,8 +328,18 @@ function ProductDetails({
                             <div className="absolute -bottom-32 -left-24 w-96 h-96 rounded-full bg-indigo-200/40" />
 
 
-                            <div className="relative z-10 text-[150px] sm:text-[190px] drop-shadow-2xl">
-                                🛍️
+                            <div className="relative z-10 w-full h-full flex items-center justify-center p-8">
+                                {product.imageUrl ? (
+                                    <img
+                                        src={product.imageUrl}
+                                        alt={product.name}
+                                        className="w-full h-full object-contain drop-shadow-xl"
+                                    />
+                                ) : (
+                                    <p className="text-slate-500 text-sm">
+                                        Product image not available
+                                    </p>
+                                )}
                             </div>
 
 

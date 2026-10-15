@@ -559,3 +559,68 @@ export const getOrders = async () => {
     return response.json();
 };
 
+
+export interface PaymentOrder {
+    localOrderId: number;
+    razorpayOrderId: string;
+    amount: number;
+    currency: string;
+    keyId: string;
+    name: string;
+    description: string;
+    email: string;
+}
+
+export interface PaymentVerification {
+    localOrderId: number;
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+}
+
+export const createPaymentOrder = async (): Promise<PaymentOrder> => {
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(`${API_URL}/orders`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || data.error || "Could not create payment order");
+    }
+
+    return data as PaymentOrder;
+};
+
+export const verifyPayment = async (
+    payment: PaymentVerification
+) => {
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(`${API_URL}/orders/verify-payment`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payment),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            data.message || data.error || "Payment verification failed"
+        );
+    }
+
+    return data;
+};
+
+
